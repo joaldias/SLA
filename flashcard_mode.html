@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling Practice - Flashcard Mode</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 36px;
+            text-align: center;
+            background-color: #f0f8ff;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        p.instructions {
+            font-size: 24px;
+            color: #555;
+        }
+
+        button {
+            font-size: 36px;
+            padding: 15px 30px;
+            margin: 15px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .flashcards {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .flashcard {
+            font-size: 32px;
+            padding: 20px 40px;
+            margin: 0 20px;
+            cursor: pointer;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            width: 200px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flashcard:hover {
+            background-color: #e0e0e0;
+            transform: scale(1.05);
+        }
+
+        /* Add this class to disable clicks on flashcards */
+        .disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        #feedbackFC {
+            margin-top: 30px;
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #scoreFC {
+            margin-top: 45px;
+            font-size: 42px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #spelledWord {
+            margin-top: 20px;
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+            display: none;
+            letter-spacing: 0.5em; /* Adds space between letters */
+        }
+
+        .show {
+            display: block;
+        }
+
+        /* Confetti Styles */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #FFC700; /* Default color */
+            opacity: 0.7;
+            top: 0;
+            z-index: 1000;
+            pointer-events: none;
+            animation: confetti-fall linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Different Colors for Confetti */
+        .confetti:nth-child(1) { background-color: #FFC700; }
+        .confetti:nth-child(2) { background-color: #FF5733; }
+        .confetti:nth-child(3) { background-color: #C70039; }
+        .confetti:nth-child(4) { background-color: #900C3F; }
+        .confetti:nth-child(5) { background-color: #581845; }
+        .confetti:nth-child(6) { background-color: #DAF7A6; }
+        .confetti:nth-child(7) { background-color: #FFC300; }
+        .confetti:nth-child(8) { background-color: #FF5733; }
+        .confetti:nth-child(9) { background-color: #C70039; }
+        .confetti:nth-child(10) { background-color: #900C3F; }
+    </style>
+</head>
+<body>
+    <h2>Spelling Practice - Flashcard Mode</h2>
+    <p class="instructions">Instructions: Click the "Hear the Word" button, then select the correct flashcard.</p>
+    
+    <button id="hearWordButtonFC" onclick="nextWordHandler()">Hear the Word</button>
+    
+    <div class="flashcards">
+        <div id="flashcard1" class="flashcard" onclick="selectFlashcard(1)">Flashcard 1</div>
+        <div id="flashcard2" class="flashcard" onclick="selectFlashcard(2)">Flashcard 2</div>
+    </div>
+    
+    <p id="feedbackFC" aria-live="assertive"></p>
+    <p id="spelledWord" class="hidden"></p>
+    <p id="scoreFC">Score: 0</p>
+    <div id="confetti-container"></div> <!-- Confetti container for the animation -->
+
+    <script>
+        const words = ["wet", "pen", "else", "legs", "went", "sent", "yes", "rest", "left", "end"];
+        const winningScore = 20; // Game ends at 20 points
+        let currentWord = "";
+        let correctFlashcard = 0;
+        let scoreFC = 0;
+        let selectedVoice = null;
+
+        // Voice selection
+        function setVoice() {
+            const voices = speechSynthesis.getVoices();
+            selectedVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.toLowerCase().includes('female')) || voices.find(voice => voice.lang === 'en-US') || voices[0];
+        }
+
+        // Initialize voices
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = setVoice;
+        } else {
+            setVoice(); // Initialize if voices are already available
+        }
+
+        // Get a random word and set up flashcards
+        function getRandomWord() {
+            if (scoreFC >= winningScore) {
+                endGame(); // Trigger animation if player reaches the score limit
+                return;
+            }
+
+            currentWord = words[Math.floor(Math.random() * words.length)];
+            document.getElementById("feedbackFC").innerText = "";
+            prepareFlashcards();
+
+            // Re-enable the "Hear the Word" button for the new word
+            document.getElementById("hearWordButtonFC").disabled = false;
+        }
+
+        // Speak the current word
+        function speakWord() {
+            if (currentWord) {
+                const utterance = new SpeechSynthesisUtterance(currentWord);
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function nextWordHandler() {
+            speakWord(); // Speak the word when "Hear the Word" button is clicked
+
+            // Enable flashcards for interaction after hearing the word
+            document.getElementById("flashcard1").classList.remove("disabled");
+            document.getElementById("flashcard2").classList.remove("disabled");
+        }
+
+        // Prepare flashcards with one correct word and one incorrect word
+        function prepareFlashcards() {
+            let incorrectWord;
+            do {
+                incorrectWord = words[Math.floor(Math.random() * words.length)];
+            } while (incorrectWord === currentWord);
+
+            correctFlashcard = Math.random() < 0.5 ? 1 : 2;
+            document.getElementById("flashcard1").innerText = correctFlashcard === 1 ? currentWord : incorrectWord;
+            document.getElementById("flashcard2").innerText = correctFlashcard === 2 ? currentWord : incorrectWord;
+
+            // Initially disable flashcards to prevent clicks until "Hear the Word" is clicked
+            document.getElementById("flashcard1").classList.add("disabled");
+            document.getElementById("flashcard2").classList.add("disabled");
+        }
+
+        // Handle flashcard selection
+        function selectFlashcard(selectedOption) {
+            const feedbackElement = document.getElementById("feedbackFC");
+            const selectedText = selectedOption === 1 ? document.getElementById("flashcard1").innerText : document.getElementById("flashcard2").innerText;
+
+            // Disable further clicks on flashcards
+            document.getElementById("flashcard1").classList.add("disabled");
+            document.getElementById("flashcard2").classList.add("disabled");
+
+            if (selectedText === currentWord) {
+                feedbackElement.innerText = "🎉 Correct! 🎉";
+                feedbackElement.style.color = "#4CAF50";
+                scoreFC++;
+                document.getElementById("scoreFC").innerText = `Score: ${scoreFC}`;
+
+                // Disable "Hear the Word" button until new word is displayed
+                document.getElementById("hearWordButtonFC").disabled = true;
+
+                if (scoreFC >= winningScore) {
+                    setTimeout(endGame, 1000); // Trigger animation if game is won
+                } else {
+                    // Wait for the animation to complete, then load the next word and flashcards
+                    setTimeout(() => {
+                        document.getElementById("spelledWord").classList.remove("show"); // Hide the spelled word
+                        getRandomWord(); // Get a new word and reset the flashcards
+                    }, currentWord.length * 300 + 1000);
+                }
+            } else {
+                feedbackElement.innerText = "❌ Incorrect. Try again.";
+                feedbackElement.style.color = "#f44336";
+            }
+        }
+
+        // Function to end the game and display the confetti animation
+        function endGame() {
+            document.getElementById("feedbackFC").innerText = "🎉 You won! 🎉";
+            document.getElementById("hearWordButtonFC").disabled = true; // Disable the button after winning
+            triggerConfetti(); // Trigger the confetti animation
+        }
+
+        // Confetti Animation
+        function triggerConfetti() {
+            const confettiContainer = document.getElementById('confetti-container');
+            const confettiCount = 100;
+            const colors = ['#FFC700', '#FF5733', '#C70039', '#900C3F', '#581845', '#DAF7A6', '#FFC300'];
+
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.backgroundColor = colors[i % colors.length];
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`; // 2-5 seconds
+                confetti.style.opacity = Math.random() + 0.5; // 0.5 to 1 opacity
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                confettiContainer.appendChild(confetti);
+
+                // Remove confetti after animation ends
+                confetti.addEventListener('animationend', () => {
+                    confetti.remove();
+                });
+            }
+        }
+
+        // Start by loading a random word
+        window.onload = getRandomWord;
+    </script>
+</body>
+</html>
