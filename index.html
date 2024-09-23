@@ -31,14 +31,90 @@
         button:hover {
             background-color: #45a049;
         }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        textarea {
+            width: 400px;
+            height: 100px;
+            font-size: 20px;
+            margin: 10px;
+            padding: 10px;
+        }
+
+        .info {
+            font-size: 20px;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        /* Clear words button */
+        button.clear-button {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+        }
+
+        button.clear-button:hover {
+            background-color: #d32f2f;
+        }
     </style>
 </head>
 <body>
     <h2>Select Game Mode</h2>
-    <button onclick="location.href='typing_mode.html'">Typing Mode</button>
+
+    <p class="info">If you don't provide custom words, the game will use the default word list. The words will persist across modes unless you type new words.</p>
+
+    <!-- Form for Custom Words -->
+    <textarea id="customWords" placeholder="Enter your custom words, separated by commas (e.g., apple, orange, banana)"></textarea>
     <br>
-    <button onclick="location.href='flashcard_mode.html'">Flashcard Mode</button>
+
+    <!-- Buttons for Game Modes -->
+    <button onclick="startGame('typing_mode.html')">Typing Mode</button>
     <br>
-    <button onclick="location.href='similar_mode.html'">Similar Words Mode</button>
+    <button onclick="startGame('flashcard_mode.html')">Flashcard Mode</button>
+    <br>
+    <button onclick="startGame('similar_mode.html')">Similar Words Mode</button>
+    <br>
+
+    <!-- Clear Words Button -->
+    <button class="clear-button" onclick="clearWords()">Clear Words</button>
+
+    <script>
+        // Prepopulate the textarea with existing custom words if they exist
+        window.onload = function() {
+            const savedWords = localStorage.getItem("customWordList");
+            if (savedWords) {
+                document.getElementById("customWords").value = JSON.parse(savedWords).join(", ");
+            }
+        };
+
+        // Function to start the selected game mode with either custom or preset words
+        function startGame(gameModeUrl) {
+            const customWords = document.getElementById("customWords").value.trim();
+
+            // Check if custom words are entered; if not, use the already stored list
+            if (customWords) {
+                const wordList = customWords.split(',').map(word => word.trim());
+
+                // Store the word list in localStorage so it can be accessed by the game mode
+                localStorage.setItem("customWordList", JSON.stringify(wordList));
+            }
+
+            // Redirect to the selected game mode
+            window.location.href = gameModeUrl;
+        }
+
+        // Function to clear the stored words
+        function clearWords() {
+            localStorage.removeItem("customWordList");
+            document.getElementById("customWords").value = "";  // Clear the textarea
+            alert("Word list has been cleared. You can now enter new words.");
+        }
+    </script>
 </body>
 </html>
