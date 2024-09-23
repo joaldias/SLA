@@ -67,18 +67,18 @@
 <body>
     <h2>Select Game Mode</h2>
 
-    <p class="info">If you don't provide custom words, the game will use the default word list. The words will persist across modes unless you type new words.</p>
+    <p class="info">Please enter your custom words below. You cannot start the game without providing custom words.</p>
 
     <!-- Form for Custom Words -->
     <textarea id="customWords" placeholder="Enter your custom words, separated by commas (e.g., apple, orange, banana)"></textarea>
     <br>
 
     <!-- Buttons for Game Modes -->
-    <button onclick="startGame('typing_mode.html')">Typing Mode</button>
+    <button id="typingModeBtn" onclick="startGame('typing_mode.html')">Typing Mode</button>
     <br>
-    <button onclick="startGame('flashcard_mode.html')">Flashcard Mode</button>
+    <button id="flashcardModeBtn" onclick="startGame('flashcard_mode.html')">Flashcard Mode</button>
     <br>
-    <button onclick="startGame('similar_mode.html')">Similar Words Mode</button>
+    <button id="similarModeBtn" onclick="startGame('similar_mode.html')">Similar Words Mode</button>
     <br>
 
     <!-- Clear Words Button -->
@@ -93,17 +93,20 @@
             }
         };
 
-        // Function to start the selected game mode with either custom or preset words
+        // Function to start the selected game mode
         function startGame(gameModeUrl) {
             const customWords = document.getElementById("customWords").value.trim();
 
-            // Check if custom words are entered; if not, use the already stored list
-            if (customWords) {
-                const wordList = customWords.split(',').map(word => word.trim());
-
-                // Store the word list in localStorage so it can be accessed by the game mode
-                localStorage.setItem("customWordList", JSON.stringify(wordList));
+            // Check if custom words are entered; if not, show an alert
+            if (!customWords) {
+                alert("Please enter custom words before starting the game.");
+                return;
             }
+
+            const wordList = customWords.split(',').map(word => word.trim());
+
+            // Store the word list in localStorage so it can be accessed by the game modes
+            localStorage.setItem("customWordList", JSON.stringify(wordList));
 
             // Redirect to the selected game mode
             window.location.href = gameModeUrl;

@@ -104,102 +104,94 @@
     <button class="back-button" onclick="window.location.href='index.html'">Back to Main Menu</button>
 
     <script>
-        // Load custom words from localStorage or use default words
+        // Load custom words from localStorage
         const storedWords = localStorage.getItem("customWordList");
-        let words = storedWords ? JSON.parse(storedWords) : ["wet", "pen", "else", "legs", "went", "sent", "yes", "rest", "left", "end"];
-
+    
+        // Check if custom words exist in localStorage
+        if (storedWords) {
+            let words = JSON.parse(storedWords);  // Use the custom words provided by the user
+        } else {
+            alert("Please enter custom words to play the game.");
+            window.location.href = "index.html";  // Redirect to the main menu if no words are found
+        }
+    
         let currentWord = "";
-        let score = 0;
+        let incorrectWord = "";
+        let correctFlashcard = 0;
+        let scoreFC = 0;
         const winningScore = 10;
         let selectedVoice = null;
-
+    
         // Voice selection
         function setVoice() {
             const voices = speechSynthesis.getVoices();
             selectedVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.toLowerCase().includes('female')) || voices.find(voice => voice.lang === 'en-US') || voices[0];
         }
-
-        // Initialize voices
+    
         if (speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = setVoice;
         } else {
-            setVoice(); // Initialize if voices are already available
+            setVoice();
         }
-
-        // Get a random word and reset the input field
-        function getRandomWord() {
-            currentWord = words[Math.floor(Math.random() * words.length)];
-            document.getElementById("wordInput").value = ""; // Clear input field
-            document.getElementById("feedback").innerText = ""; // Clear feedback
-            document.getElementById("hearWordButton").disabled = false; // Enable hear word button
-            document.getElementById("submitBtn").disabled = false; // Enable submit button
+    
+        // Prepare flashcards with one correct and one incorrect word
+        function prepareFlashcards() {
+            do {
+                currentWord = words[Math.floor(Math.random() * words.length)];
+                incorrectWord = words[Math.floor(Math.random() * words.length)];
+            } while (incorrectWord === currentWord);  // Ensure incorrect word is different
+    
+            correctFlashcard = Math.random() < 0.5 ? 1 : 2;
+            document.getElementById("flashcard1").innerText = correctFlashcard === 1 ? currentWord : incorrectWord;
+            document.getElementById("flashcard2").innerText = correctFlashcard === 2 ? currentWord : incorrectWord;
+    
+            // Reset feedback and enable flashcards
+            document.getElementById("feedbackFC").innerText = "";
+            document.getElementById("flashcard1").classList.remove("disabled");
+            document.getElementById("flashcard2").classList.remove("disabled");
         }
-
+    
         // Speak the current word
         function speakWord() {
-            if (currentWord) {
-                const utterance = new SpeechSynthesisUtterance(currentWord);
-                if (selectedVoice) {
-                    utterance.voice = selectedVoice;
-                }
-                speechSynthesis.speak(utterance);
-            }
+            const utterance = new SpeechSynthesisUtterance(currentWord);
+            utterance.voice = selectedVoice;
+            speechSynthesis.speak(utterance);
         }
-
+    
+        // Handle when the "Hear the Word" button is clicked
         function nextWordHandler() {
-            speakWord(); // Speak the word when "Hear the Word" button is clicked
+            speakWord();
+            document.getElementById("hearWordButtonFC").disabled = true;  // Disable button until the next round
         }
-
-        function checkSpelling() {
-            const userInput = document.getElementById("wordInput").value.trim().toLowerCase();
-            const feedbackElement = document.getElementById("feedback");
-
-            if (userInput === currentWord) {
-                feedbackElement.innerText = "🎉 Correct! 🎉";
-                feedbackElement.style.color = "#4CAF50"; // Green for correct answers
-
-                score++;
-                document.getElementById("score").innerText = `Score: ${score}`;
-
-                document.getElementById("wordInput").disabled = true;
-                document.getElementById("submitBtn").disabled = true;
-
-                if (score >= winningScore) {
-                    setTimeout(endGame, 1000);
+    
+        // Handle flashcard selection
+        function selectFlashcard(selectedOption) {
+            const feedbackElement = document.getElementById("feedbackFC");
+    
+            if (selectedOption === correctFlashcard) {
+                feedbackElement.innerText = "🎉 Correct!";
+                scoreFC++;
+                document.getElementById("scoreFC").innerText = `Score: ${scoreFC}`;
+                
+                if (scoreFC >= winningScore) {
+                    setTimeout(() => feedbackElement.innerText = "🎉 You won! 🎉", 1000);
                 } else {
-                    // Automatically load the next word after 2 seconds
                     setTimeout(() => {
-                        resetInput();
-                        getRandomWord();
+                        prepareFlashcards();
+                        document.getElementById("hearWordButtonFC").disabled = false;  // Re-enable button for next round
                     }, 2000);
                 }
             } else {
                 feedbackElement.innerText = "❌ Incorrect. Try again.";
-                feedbackElement.style.color = "#f44336"; // Red for incorrect answers
-
-                // Re-enable the "Hear the Word" button so the user can hear it again
-                document.getElementById("hearWordButton").disabled = false;
             }
+    
+            // Disable flashcards until the next round
+            document.getElementById("flashcard1").classList.add("disabled");
+            document.getElementById("flashcard2").classList.add("disabled");
         }
-
-        // Reset the input for the next word
-        function resetInput() {
-            document.getElementById("wordInput").value = "";
-            document.getElementById("feedback").innerText = "";
-            document.getElementById("wordInput").disabled = false; // Re-enable typing
-            document.getElementById("submitBtn").disabled = false; // Re-enable submit button
-        }
-
-        // End the game and display a win message
-        function endGame() {
-            document.getElementById("feedback").innerText = "🎉 You won! 🎉";
-            document.getElementById("hearWordButton").disabled = true;
-            document.getElementById("submitBtn").disabled = true;
-            document.getElementById("wordInput").disabled = true;
-        }
-
-        // Initialize the first word on page load
-        window.onload = getRandomWord;
+    
+        // Initialize the first word and flashcards
+        window.onload = prepareFlashcards;
     </script>
 </body>
 </html>
