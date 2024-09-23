@@ -48,8 +48,8 @@
         input[type="text"] {
             font-size: 36px;
             padding: 15px;
-            margin-top: 30px;
             width: 450px;
+            margin-top: 30px;
             border: 2px solid #ccc;
             border-radius: 8px;
             text-align: center;
@@ -60,6 +60,7 @@
             font-size: 36px;
             font-weight: bold;
             color: #333;
+            min-height: 50px;
         }
 
         #score {
@@ -69,56 +70,47 @@
             color: #333;
         }
 
-        /* Confetti Styles */
-        .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: #FFC700;
-            opacity: 0.7;
-            top: 0;
-            z-index: 1000;
-            pointer-events: none;
-            animation: confetti-fall linear forwards;
+        /* Back to Main Menu button */
+        button.back-button {
+            font-size: 24px;
+            padding: 10px 20px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
         }
 
-        @keyframes confetti-fall {
-            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        button.back-button:hover {
+            background-color: #d32f2f;
         }
-
-        /* Different Colors for Confetti */
-        .confetti:nth-child(1) { background-color: #FFC700; }
-        .confetti:nth-child(2) { background-color: #FF5733; }
-        .confetti:nth-child(3) { background-color: #C70039; }
-        .confetti:nth-child(4) { background-color: #900C3F; }
-        .confetti:nth-child(5) { background-color: #581845; }
-        .confetti:nth-child(6) { background-color: #DAF7A6; }
-        .confetti:nth-child(7) { background-color: #FFC300; }
-        .confetti:nth-child(8) { background-color: #FF5733; }
-        .confetti:nth-child(9) { background-color: #C70039; }
-        .confetti:nth-child(10) { background-color: #900C3F; }
     </style>
 </head>
 <body>
     <h2>Spelling Practice - Typing Mode</h2>
-    <p class="instructions">Instructions: Click the "Hear the Word" button, then type the word you hear.</p>
+    <p class="instructions">Click the "Hear the Word" button, then type the word and click "Submit".</p>
 
     <button id="hearWordButton" onclick="nextWordHandler()">Hear the Word</button>
     <br>
-    <input type="text" id="wordInput" placeholder="Type the word" disabled>
+    <input type="text" id="wordInput" placeholder="Type the word">
     <br>
-    <button onclick="checkSpelling()" disabled>Submit</button>
-    
+    <button id="submitBtn" onclick="checkSpelling()">Submit</button>
+
     <p id="feedback" aria-live="assertive"></p>
     <p id="score">Score: 0</p>
-    <div id="confetti-container"></div>
+
+    <!-- Back to Main Menu Button -->
+    <button class="back-button" onclick="window.location.href='index.html'">Back to Main Menu</button>
 
     <script>
-        const words = ["wet", "pen", "else", "legs", "went", "sent", "yes", "rest", "left", "end"];
-        const winningScore = 10;
+        // Load custom words from localStorage or use default words
+        const storedWords = localStorage.getItem("customWordList");
+        let words = storedWords ? JSON.parse(storedWords) : ["wet", "pen", "else", "legs", "went", "sent", "yes", "rest", "left", "end"];
+
         let currentWord = "";
         let score = 0;
+        const winningScore = 10;
         let selectedVoice = null;
 
         // Voice selection
@@ -134,53 +126,59 @@
             setVoice(); // Initialize if voices are already available
         }
 
-        // Get a new word
-        function nextWordHandler() {
+        // Get a random word and reset the input field
+        function getRandomWord() {
             currentWord = words[Math.floor(Math.random() * words.length)];
-            speakWord(currentWord);
-
-            // Enable input and submit button
-            document.getElementById("wordInput").disabled = false;
-            document.querySelector('button[onclick="checkSpelling()"]').disabled = false;
+            document.getElementById("wordInput").value = ""; // Clear input field
+            document.getElementById("feedback").innerText = ""; // Clear feedback
+            document.getElementById("hearWordButton").disabled = false; // Enable hear word button
+            document.getElementById("submitBtn").disabled = false; // Enable submit button
         }
 
         // Speak the current word
-        function speakWord(word) {
-            const utterance = new SpeechSynthesisUtterance(word);
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
+        function speakWord() {
+            if (currentWord) {
+                const utterance = new SpeechSynthesisUtterance(currentWord);
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+                speechSynthesis.speak(utterance);
             }
-            speechSynthesis.speak(utterance);
-
-            // Disable the "Hear the Word" button until the word is typed
-            document.getElementById("hearWordButton").disabled = true;
         }
 
-        // Check the spelling of the word
+        function nextWordHandler() {
+            speakWord(); // Speak the word when "Hear the Word" button is clicked
+        }
+
         function checkSpelling() {
             const userInput = document.getElementById("wordInput").value.trim().toLowerCase();
             const feedbackElement = document.getElementById("feedback");
 
             if (userInput === currentWord) {
                 feedbackElement.innerText = "🎉 Correct! 🎉";
+                feedbackElement.style.color = "#4CAF50"; // Green for correct answers
+
                 score++;
                 document.getElementById("score").innerText = `Score: ${score}`;
 
-                // Disable further typing
                 document.getElementById("wordInput").disabled = true;
-                document.querySelector('button[onclick="checkSpelling()"]').disabled = true;
+                document.getElementById("submitBtn").disabled = true;
 
                 if (score >= winningScore) {
-                    setTimeout(endGame, 1000); // Trigger end game animation
+                    setTimeout(endGame, 1000);
                 } else {
-                    // Load the next word after a brief delay
+                    // Automatically load the next word after 2 seconds
                     setTimeout(() => {
-                        nextWordHandler();
                         resetInput();
+                        getRandomWord();
                     }, 2000);
                 }
             } else {
                 feedbackElement.innerText = "❌ Incorrect. Try again.";
+                feedbackElement.style.color = "#f44336"; // Red for incorrect answers
+
+                // Re-enable the "Hear the Word" button so the user can hear it again
+                document.getElementById("hearWordButton").disabled = false;
             }
         }
 
@@ -188,40 +186,20 @@
         function resetInput() {
             document.getElementById("wordInput").value = "";
             document.getElementById("feedback").innerText = "";
-            document.getElementById("hearWordButton").disabled = false;
-            document.getElementById("wordInput").disabled = true;
-            document.querySelector('button[onclick="checkSpelling()"]').disabled = true;
+            document.getElementById("wordInput").disabled = false; // Re-enable typing
+            document.getElementById("submitBtn").disabled = false; // Re-enable submit button
         }
 
-        // End the game and trigger confetti
+        // End the game and display a win message
         function endGame() {
             document.getElementById("feedback").innerText = "🎉 You won! 🎉";
             document.getElementById("hearWordButton").disabled = true;
-            triggerConfetti();
+            document.getElementById("submitBtn").disabled = true;
+            document.getElementById("wordInput").disabled = true;
         }
 
-        // Confetti Animation
-        function triggerConfetti() {
-            const confettiContainer = document.getElementById('confetti-container');
-            const confettiCount = 100;
-            const colors = ['#FFC700', '#FF5733', '#C70039', '#900C3F', '#581845', '#DAF7A6', '#FFC300'];
-
-            for (let i = 0; i < confettiCount; i++) {
-                const confetti = document.createElement('div');
-                confetti.classList.add('confetti');
-                confetti.style.backgroundColor = colors[i % colors.length];
-                confetti.style.left = `${Math.random() * 100}%`;
-                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`; // 2-5 seconds
-                confetti.style.opacity = Math.random() + 0.5; // 0.5 to 1 opacity
-                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
-                confettiContainer.appendChild(confetti);
-
-                // Remove confetti after animation ends
-                confetti.addEventListener('animationend', () => {
-                    confetti.remove();
-                });
-            }
-        }
+        // Initialize the first word on page load
+        window.onload = getRandomWord;
     </script>
 </body>
 </html>
