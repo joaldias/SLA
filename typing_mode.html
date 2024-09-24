@@ -7,26 +7,18 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            font-size: 36px;
             text-align: center;
             background-color: #f0f8ff;
             padding: 20px;
-            position: relative;
-            overflow: hidden;
         }
 
         h2 {
             color: #333;
         }
 
-        p.instructions {
-            font-size: 24px;
-            color: #555;
-        }
-
         button {
-            font-size: 36px;
-            padding: 15px 30px;
+            font-size: 2rem;
+            padding: 10px 20px;
             margin: 15px;
             cursor: pointer;
             border: none;
@@ -85,11 +77,46 @@
         button.back-button:hover {
             background-color: #d32f2f;
         }
+
+        /* Responsive design */
+        @media (max-width: 767px) {
+            button {
+                font-size: 1.5rem;
+                padding: 8px 15px;
+            }
+
+            input[type="text"] {
+                width: 90%;
+                font-size: 24px;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1023px) {
+            button {
+                font-size: 1.8rem;
+                padding: 10px 20px;
+            }
+
+            input[type="text"] {
+                width: 80%;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            button {
+                font-size: 2rem;
+                padding: 15px 30px;
+            }
+
+            input[type="text"] {
+                width: 450px;
+            }
+        }
     </style>
 </head>
 <body>
     <h2>Spelling Practice - Typing Mode</h2>
-    <p class="instructions">Click the "Hear the Word" button, then type the word and click "Submit".</p>
+    <p>Click the "Hear the Word" button, then type the word and click "Submit".</p>
 
     <button id="hearWordButton" onclick="nextWordHandler()">Hear the Word</button>
     <br>
@@ -104,94 +131,88 @@
     <button class="back-button" onclick="window.location.href='index.html'">Back to Main Menu</button>
 
     <script>
-        // Load custom words from localStorage
         const storedWords = localStorage.getItem("customWordList");
-    
-        // Check if custom words exist in localStorage
-        if (storedWords) {
-            let words = JSON.parse(storedWords);  // Use the custom words provided by the user
-        } else {
+        if (!storedWords) {
             alert("Please enter custom words to play the game.");
-            window.location.href = "index.html";  // Redirect to the main menu if no words are found
+            window.location.href = "index.html";
         }
-    
+
+        const words = JSON.parse(storedWords);
         let currentWord = "";
-        let incorrectWord = "";
-        let correctFlashcard = 0;
-        let scoreFC = 0;
+        let score = 0;
         const winningScore = 10;
         let selectedVoice = null;
-    
-        // Voice selection
+
         function setVoice() {
             const voices = speechSynthesis.getVoices();
             selectedVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.toLowerCase().includes('female')) || voices.find(voice => voice.lang === 'en-US') || voices[0];
         }
-    
+
         if (speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = setVoice;
         } else {
             setVoice();
         }
-    
-        // Prepare flashcards with one correct and one incorrect word
-        function prepareFlashcards() {
-            do {
-                currentWord = words[Math.floor(Math.random() * words.length)];
-                incorrectWord = words[Math.floor(Math.random() * words.length)];
-            } while (incorrectWord === currentWord);  // Ensure incorrect word is different
-    
-            correctFlashcard = Math.random() < 0.5 ? 1 : 2;
-            document.getElementById("flashcard1").innerText = correctFlashcard === 1 ? currentWord : incorrectWord;
-            document.getElementById("flashcard2").innerText = correctFlashcard === 2 ? currentWord : incorrectWord;
-    
-            // Reset feedback and enable flashcards
-            document.getElementById("feedbackFC").innerText = "";
-            document.getElementById("flashcard1").classList.remove("disabled");
-            document.getElementById("flashcard2").classList.remove("disabled");
+
+        function getRandomWord() {
+            currentWord = words[Math.floor(Math.random() * words.length)];
+            document.getElementById("wordInput").value = "";
+            document.getElementById("feedback").innerText = "";
+            document.getElementById("hearWordButton").disabled = false;
+            document.getElementById("submitBtn").disabled = false;
         }
-    
-        // Speak the current word
+
         function speakWord() {
             const utterance = new SpeechSynthesisUtterance(currentWord);
             utterance.voice = selectedVoice;
             speechSynthesis.speak(utterance);
         }
-    
-        // Handle when the "Hear the Word" button is clicked
+
         function nextWordHandler() {
             speakWord();
-            document.getElementById("hearWordButtonFC").disabled = true;  // Disable button until the next round
         }
-    
-        // Handle flashcard selection
-        function selectFlashcard(selectedOption) {
-            const feedbackElement = document.getElementById("feedbackFC");
-    
-            if (selectedOption === correctFlashcard) {
+
+        function checkSpelling() {
+            const userInput = document.getElementById("wordInput").value.trim().toLowerCase();
+            const feedbackElement = document.getElementById("feedback");
+
+            if (userInput === currentWord) {
                 feedbackElement.innerText = "🎉 Correct!";
-                scoreFC++;
-                document.getElementById("scoreFC").innerText = `Score: ${scoreFC}`;
-                
-                if (scoreFC >= winningScore) {
-                    setTimeout(() => feedbackElement.innerText = "🎉 You won! 🎉", 1000);
+                feedbackElement.style.color = "#4CAF50";
+
+                score++;
+                document.getElementById("score").innerText = `Score: ${score}`;
+
+                if (score >= winningScore) {
+                    setTimeout(endGame, 1000);
                 } else {
                     setTimeout(() => {
-                        prepareFlashcards();
-                        document.getElementById("hearWordButtonFC").disabled = false;  // Re-enable button for next round
+                        resetInput();
+                        getRandomWord();
                     }, 2000);
                 }
             } else {
                 feedbackElement.innerText = "❌ Incorrect. Try again.";
+                feedbackElement.style.color = "#f44336";
+                document.getElementById("hearWordButton").disabled = false;
             }
-    
-            // Disable flashcards until the next round
-            document.getElementById("flashcard1").classList.add("disabled");
-            document.getElementById("flashcard2").classList.add("disabled");
         }
-    
-        // Initialize the first word and flashcards
-        window.onload = prepareFlashcards;
+
+        function resetInput() {
+            document.getElementById("wordInput").value = "";
+            document.getElementById("feedback").innerText = "";
+            document.getElementById("wordInput").disabled = false;
+            document.getElementById("submitBtn").disabled = false;
+        }
+
+        function endGame() {
+            document.getElementById("feedback").innerText = "🎉 You won!";
+            document.getElementById("hearWordButton").disabled = true;
+            document.getElementById("submitBtn").disabled = true;
+            document.getElementById("wordInput").disabled = true;
+        }
+
+        window.onload = getRandomWord;
     </script>
 </body>
 </html>

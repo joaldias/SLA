@@ -17,8 +17,8 @@
         }
 
         button {
-            font-size: 36px;
-            padding: 15px 30px;
+            font-size: 2rem;
+            padding: 10px 20px;
             margin: 15px;
             cursor: pointer;
             border: none;
@@ -98,6 +98,41 @@
         button.back-button:hover {
             background-color: #d32f2f;
         }
+
+        /* Responsive design */
+        @media (max-width: 767px) {
+            button {
+                font-size: 1.5rem;
+                padding: 8px 15px;
+            }
+
+            .flashcard {
+                width: 90%;
+                margin-bottom: 15px;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1023px) {
+            button {
+                font-size: 1.8rem;
+                padding: 10px 20px;
+            }
+
+            .flashcard {
+                flex: 1 1 200px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            button {
+                font-size: 2rem;
+                padding: 15px 30px;
+            }
+
+            .flashcard {
+                max-width: 300px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -118,10 +153,13 @@
     <button class="back-button" onclick="window.location.href='index.html'">Back to Main Menu</button>
 
     <script>
-        // Load custom words from localStorage or use default words
         const storedWords = localStorage.getItem("customWordList");
-        let words = storedWords ? JSON.parse(storedWords) : ["wet", "pen", "else", "legs", "went", "sent", "yes", "rest", "left", "end"];
+        if (!storedWords) {
+            alert("Please enter custom words to play the game.");
+            window.location.href = "index.html";
+        }
 
+        const words = JSON.parse(storedWords);
         let currentWord = "";
         let incorrectWord = "";
         let correctFlashcard = 0;
@@ -141,37 +179,32 @@
             setVoice();
         }
 
-        // Prepare flashcards with one correct and one incorrect word
         function prepareFlashcards() {
             do {
                 currentWord = words[Math.floor(Math.random() * words.length)];
                 incorrectWord = words[Math.floor(Math.random() * words.length)];
-            } while (incorrectWord === currentWord);  // Ensure incorrect word is different
+            } while (incorrectWord === currentWord); 
 
             correctFlashcard = Math.random() < 0.5 ? 1 : 2;
             document.getElementById("flashcard1").innerText = correctFlashcard === 1 ? currentWord : incorrectWord;
             document.getElementById("flashcard2").innerText = correctFlashcard === 2 ? currentWord : incorrectWord;
 
-            // Reset feedback and enable flashcards
             document.getElementById("feedbackFC").innerText = "";
             document.getElementById("flashcard1").classList.remove("disabled");
             document.getElementById("flashcard2").classList.remove("disabled");
         }
 
-        // Speak the current word
         function speakWord() {
             const utterance = new SpeechSynthesisUtterance(currentWord);
             utterance.voice = selectedVoice;
             speechSynthesis.speak(utterance);
         }
 
-        // Handle when the "Hear the Word" button is clicked
         function nextWordHandler() {
             speakWord();
-            document.getElementById("hearWordButtonFC").disabled = true;  // Disable button until the next round
+            document.getElementById("hearWordButtonFC").disabled = true;
         }
 
-        // Handle flashcard selection
         function selectFlashcard(selectedOption) {
             const feedbackElement = document.getElementById("feedbackFC");
 
@@ -185,19 +218,22 @@
                 } else {
                     setTimeout(() => {
                         prepareFlashcards();
-                        document.getElementById("hearWordButtonFC").disabled = false;  // Re-enable button for next round
+                        document.getElementById("hearWordButtonFC").disabled = false;
                     }, 2000);
                 }
             } else {
-                feedbackElement.innerText = "❌ Incorrect. Try again.";
+                feedbackElement.innerText = "❌ Incorrect. Moving to the next word.";
+                // Automatically move to the next word after an incorrect answer
+                setTimeout(() => {
+                    prepareFlashcards();
+                    document.getElementById("hearWordButtonFC").disabled = false;
+                }, 2000);
             }
 
-            // Disable flashcards until the next round
             document.getElementById("flashcard1").classList.add("disabled");
             document.getElementById("flashcard2").classList.add("disabled");
         }
 
-        // Initialize the first word and flashcards
         window.onload = prepareFlashcards;
     </script>
 </body>
