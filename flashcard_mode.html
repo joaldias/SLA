@@ -137,9 +137,9 @@
 </head>
 <body>
     <h2>Spelling Practice - Flashcard Mode</h2>
-    <p>Click the "Hear the Word" button, then select the correct flashcard.</p>
+    <p>Click the "Hear the Word" button as many times as needed, then select the correct flashcard.</p>
 
-    <button id="hearWordButtonFC" onclick="nextWordHandler()">Hear the Word</button>
+    <button id="hearWordButtonFC" onclick="speakWord()">Hear the Word</button>
 
     <div class="flashcards">
         <div id="flashcard1" class="flashcard" onclick="selectFlashcard(1)">Flashcard 1</div>
@@ -200,11 +200,6 @@
             speechSynthesis.speak(utterance);
         }
 
-        function nextWordHandler() {
-            speakWord();
-            document.getElementById("hearWordButtonFC").disabled = true;
-        }
-
         function selectFlashcard(selectedOption) {
             const feedbackElement = document.getElementById("feedbackFC");
 
@@ -218,18 +213,20 @@
                 } else {
                     setTimeout(() => {
                         prepareFlashcards();
-                        document.getElementById("hearWordButtonFC").disabled = false;
                     }, 2000);
                 }
             } else {
-                feedbackElement.innerText = "❌ Incorrect. Moving to the next word.";
-                // Automatically move to the next word after an incorrect answer
+                feedbackElement.innerText = "❌ Incorrect. The correct word was:";
+                // Play the correct word's audio once after an incorrect answer
+                speakWord();
+
+                // Move to the next word after hearing the correct word
                 setTimeout(() => {
                     prepareFlashcards();
-                    document.getElementById("hearWordButtonFC").disabled = false;
-                }, 2000);
+                }, 3000);  // Allow time for the audio to play
             }
 
+            // Disable flashcards after user selection
             document.getElementById("flashcard1").classList.add("disabled");
             document.getElementById("flashcard2").classList.add("disabled");
         }
